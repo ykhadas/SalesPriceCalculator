@@ -16,7 +16,7 @@ namespace SalesCombination
             CombinationProduct c1 = new CombinationProduct() { Price = 15, SubProductIds = new List<ulong> { 1, 1 } };
             CombinationProduct c2 = new CombinationProduct() { Price = 35, SubProductIds = new List<ulong> { 2, 2 } };
 
-            var res = new SalesCombination().GetPriceWithSpecialOffers(new List<CombinationProduct>() { c1, c2 },
+            var res = new SalesPriceCalculator().GetPriceWithSpecialOffers(new List<CombinationProduct>() { c1, c2 },
                 new List<Product> { p1, p1, p2, p2, p3, p3 });
             res.Should().Be(110);
         }
@@ -31,7 +31,7 @@ namespace SalesCombination
             CombinationProduct c1 = new CombinationProduct() { Price = 15, SubProductIds = new List<ulong> { 1, 1 } };
             CombinationProduct c2 = new CombinationProduct() { Price = 24, SubProductIds = new List<ulong> { 1, 2 } };
 
-            var res = new SalesCombination().GetPriceWithSpecialOffers(new List<CombinationProduct>() { c1, c2 },
+            var res = new SalesPriceCalculator().GetPriceWithSpecialOffers(new List<CombinationProduct>() { c1, c2 },
                 new List<Product> { p1, p1, p1, p1, p2 });
             res.Should().Be(49);
         }
