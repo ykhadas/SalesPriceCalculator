@@ -1,24 +1,31 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace SalesCombination
 {
     public class SalesPriceCalculator
     {
-        public int GetPriceWithSpecialOffers(List<CombinationProduct> specialOffers, List<Product> productsInTheBasket)
+        public static Result GetPriceWithSpecialOffers(IEnumerable<CombinationProduct> specialOffers, IEnumerable<Product> productsInTheBasket)
         {
-            Dictionary<int, int> cache = new Dictionary<int, int>();
+            Dictionary<int, Result> cache = new Dictionary<int, Result>();
 
             return GetMinPrice(specialOffers, productsInTheBasket, cache);
         }
 
-        private int GetMinPrice(List<CombinationProduct> specialOffers, List<Product> productsInTheBasket, Dictionary<int, int> cache)
+        private static Result GetMinPrice(IEnumerable<CombinationProduct> specialOffers, IEnumerable<Product> productsInTheBasket, Dictionary<int, Result> cache)
         {
             if (!productsInTheBasket.Any())
-                return 0;
+                return new Result(0, Array.Empty<ulong>());
+
+            if (specialOffers == null || !specialOffers.Any())
+            {
+                return new Result(productsInTheBasket.Sum(p=>p.Price), productsInTheBasket.Select(p=>p.ProductId));
+            }
 
             //check if we already computed minimum price for that combination
-            int key = GetSequenceHashCode(productsInTheBasket);
+            var products = productsInTheBasket.Select(p => p.ProductId);
+            int key = GetSequenceHashCode(products);
 
             if (cache.ContainsKey(key))
             {
@@ -26,12 +33,14 @@ namespace SalesCombination
             }
 
             //price without offers
+
             int localMinPrice = productsInTheBasket.Sum(n => n.Price);
+          
 
             foreach (var offer in specialOffers)
             {
                 //don't go further if there are more products in the offer than we have
-                if (offer.SubProductIds.Count > productsInTheBasket.Count)
+                if (offer.SubProductIds.Count() > productsInTheBasket.Count())
                     break;
 
                 List<Product> tempProducts = new List<Product>(productsInTheBasket);
@@ -42,17 +51,25 @@ namespace SalesCombination
                     ReduceByOffer(offer, tempProducts);
 
                     int offerPrice = offer.Price;
-                    int tempMinPrice = offerPrice + GetMinPrice(specialOffers, tempProducts, cache);
+                    
+                    Result minPriceResult = GetMinPrice(specialOffers, tempProducts, cache);
 
-                    localMinPrice = localMinPrice < tempMinPrice ? localMinPrice : tempMinPrice;
+                    int tempMinPrice = offerPrice + minPriceResult.Price;
+
+                    if(localMinPrice>tempMinPrice)
+                    {
+                        products = minPriceResult.ProductIds.Concat(new[] { offer.ProductId });
+                        localMinPrice = tempMinPrice;
+                    }
                 }
             }
 
-            cache[key] = localMinPrice;
-            return localMinPrice;
+            var result = new Result(localMinPrice, products);
+            cache[key] = result;
+            return result;
         }
 
-        private void ReduceByOffer(CombinationProduct offer, List<Product> productsInTheBasket)
+        private static void ReduceByOffer(CombinationProduct offer, List<Product> productsInTheBasket)
         {
             foreach (var product in offer.SubProductIds)
             {
@@ -61,7 +78,7 @@ namespace SalesCombination
             }
         }
 
-        private bool IsOfferValid(CombinationProduct offer, List<Product> productsInTheBasket)
+        private static bool IsOfferValid(CombinationProduct offer, List<Product> productsInTheBasket)
         {
             var productIds = productsInTheBasket.Select(n => n.ProductId);
             var subProductsIds = offer.SubProductIds;
@@ -70,17 +87,14 @@ namespace SalesCombination
             return isValid;
         }
 
-        //here should be some smart hash code function. for now hello stackoverflow 
-        private int GetSequenceHashCode(List<Product> products)
+        private static int GetSequenceHashCode(IEnumerable<ulong> products)
         {
-            var sequence = products.Select(p => p.ProductId);
-
             const int seed = 487;
             const int modifier = 31;
 
             unchecked
             {
-                return sequence.Aggregate(seed, (current, item) =>
+                return products.Aggregate(seed, (current, item) =>
                     (current * modifier) + item.GetHashCode());
             }
         }

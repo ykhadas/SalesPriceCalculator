@@ -4,9 +4,15 @@ namespace SalesCombination
 {
     public class CombinationProduct
     {
-        public ulong ProductId { get; set; }
-        public int Price { get; set; }
-        public List<ulong> SubProductIds { get; set; }
-    }
+        public ulong ProductId { get; }
+        public int Price { get; }
+        public IEnumerable<ulong> SubProductIds { get; }
 
+        public CombinationProduct(ulong productId, int price, IEnumerable<ulong> subProducts)
+        {
+            ProductId = productId;
+            Price = price;
+            SubProductIds = subProducts;
+        }
+    }
 }
